@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Architect — Claude Prompt Engineering</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-root: #0d0d1a;
+    --bg-card: #111128;
+    --bg-input: #0a0a1a;
+    --bg-tip: #0d0d22;
+    --border: #1a1a2e;
+    --border-accent: #2a2a5a;
+    --border-input: #222244;
+    --text-primary: #e0e0e0;
+    --text-secondary: #888;
+    --text-muted: #555;
+    --text-dim: #999;
+    --accent: #6366f1;
+    --accent-dim: #8888cc;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --orange: #EA5C1C;
+    --font-body: 'DM Sans', 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background: var(--bg-root);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    padding: 32px 24px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #12122a 0%, var(--bg-root) 100%);
+  }
+  .header-inner { max-width: 1100px; margin: 0 auto; }
+  .badge-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; padding: 4px 12px; background: #1a1a3a;
+    border: 1px solid #2a2a4a; border-radius: 20px; font-size: 11px;
+    font-family: var(--font-mono); color: var(--accent-dim);
+    letter-spacing: 0.05em;
+  }
+  .version-badge {
+    background: linear-gradient(135deg, #1a1a3a 0%, #2a1a4a 100%);
+    border-color: var(--accent); color: #fff; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .version-badge:hover { border-color: var(--orange); background: linear-gradient(135deg, #2a1a3a 0%, #3a1a4a 100%); }
+  .updated-badge { color: #888; }
+  .header h1 {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #f0f0f0 0%, var(--accent-dim) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { font-size: 14px; color: #777; margin-top: 6px; max-width: 600px; }
+
+  /* ─── TABS ─── */
+  .tabs {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border);
+    background: #0a0a18; padding: 0 24px; position: sticky; top: 0; z-index: 10;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 14px 24px; font-size: 13px; font-weight: 500; color: #666;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    cursor: pointer; font-family: var(--font-body); transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn.active { font-weight: 700; color: #f0f0f0; border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: #aaa; }
+
+  /* ─── MAIN ─── */
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ─── BUILDER GRID ─── */
+  .builder-grid { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 768px) {
+    .builder-grid { grid-template-columns: 1fr; }
+    .sidebar { flex-direction: row !important; overflow-x: auto; padding-bottom: 12px; gap: 6px !important; position: static !important; }
+    .nav-btn .nav-label, .nav-btn .mini-bar-wrap { display: none; }
+    .nav-btn { min-width: auto; padding: 8px 12px !important; white-space: nowrap; font-size: 12px !important; }
+    .score-panel { flex-direction: column; text-align: center; }
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 60px; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: transparent; border: 1px solid transparent; border-radius: 10px;
+    cursor: pointer; font-size: 13px; color: var(--text-secondary);
+    font-family: var(--font-body); font-weight: 400; transition: all 0.15s;
+    text-align: left; width: 100%;
+  }
+  .nav-btn.active { background: #1a1a3a; border-color: var(--border-accent); color: #f0f0f0; font-weight: 600; }
+  .nav-btn:hover:not(.active) { background: #13132a; }
+  .nav-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+  .nav-label { flex: 1; }
+  .mini-bar-wrap { width: 60px; height: 5px; background: var(--bg-root); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s, background 0.3s; }
+
+  /* ─── CONTENT CARD ─── */
+  .content-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; min-height: 400px;
+  }
+  .section-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .section-header h2 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .section-subtitle { font-size: 13px; color: #666; font-weight: 400; margin-left: auto; }
+  .section-desc { font-size: 13.5px; color: var(--text-dim); margin: 8px 0 20px; line-height: 1.5; }
+
+  textarea.prompt-input {
+    width: 100%; min-height: 120px; padding: 14px 16px;
+    background: var(--bg-input); border: 1px solid var(--border-input);
+    border-radius: 10px; color: var(--text-primary); font-size: 13.5px;
+    font-family: var(--font-mono); line-height: 1.6; resize: vertical;
+    outline: none; transition: border-color 0.2s;
+  }
+  textarea.prompt-input:focus { border-color: var(--accent); }
+  textarea.prompt-input::placeholder { color: #444; }
+
+  /* ─── TIPS ─── */
+  .tips-box {
+    margin-top: 20px; padding: 16px 18px; background: var(--bg-tip);
+    border: 1px solid #1a1a3a; border-radius: 10px;
+  }
+  .tips-label {
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .tip-item { font-size: 13px; color: #aaa; padding: 4px 0; line-height: 1.5; }
+
+  .advanced-toggle {
+    margin-top: 14px; background: none; border: 1px solid #2a2a4a;
+    border-radius: 8px; padding: 8px 14px; color: var(--accent-dim);
+    font-size: 12px; cursor: pointer; font-family: var(--font-body);
+  }
+  .advanced-toggle:hover { border-color: var(--accent); }
+  .advanced-items { margin-top: 8px; }
+  .advanced-item {
+    font-size: 12.5px; color: #9999bb; padding: 4px 0 4px 12px;
+    border-left: 2px solid #333366; margin-top: 6px; line-height: 1.5;
+  }
+
+  /* ─── SCORE PANEL ─── */
+  .score-panel {
+    margin-top: 24px; padding: 20px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 14px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .score-label { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .score-advice { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .score-breakdown { display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
+  .score-breakdown span { font-size: 11px; }
+
+  /* ─── TOOLS TAB ─── */
+  .tools-intro { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6; }
+  .tool-category { margin-bottom: 24px; }
+  .tool-cat-header {
+    font-size: 16px; font-weight: 700; display: flex; align-items: center;
+    gap: 10px; margin-bottom: 12px; cursor: pointer; color: #ddd;
+    user-select: none;
+  }
+  .tool-cat-header:hover { color: #fff; }
+  .tool-cat-count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+  .tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .tool-card {
+    padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; transition: border-color 0.2s; position: relative;
+  }
+  .tool-card:hover { border-color: #2a2a4a; }
+  .tool-card.new::before {
+    content: "NEW"; position: absolute; top: 8px; right: 8px;
+    font-size: 9px; font-weight: 700; background: var(--orange); color: #fff;
+    padding: 2px 6px; border-radius: 4px; letter-spacing: 0.05em;
+  }
+  .tool-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); padding-right: 40px; }
+  .tool-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .tool-trigger {
+    font-size: 11.5px; color: var(--accent); margin-top: 6px;
+    font-family: var(--font-mono); opacity: 0.85;
+  }
+
+  /* ─── TEMPLATES TAB ─── */
+  .template-card {
+    padding: 20px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 14px;
+  }
+  .template-name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .template-pre {
+    margin-top: 12px; padding: 14px; background: var(--bg-input);
+    border-radius: 8px; font-size: 12px; font-family: var(--font-mono);
+    color: #aaa; white-space: pre-wrap; line-height: 1.6;
+    border: 1px solid var(--border); overflow-x: auto;
+  }
+  .copy-btn {
+    margin-top: 10px; padding: 8px 16px; background: #1a1a3a;
+    border: 1px solid var(--border-accent); border-radius: 8px;
+    color: #aaa; font-size: 12px; cursor: pointer;
+    font-family: var(--font-body); font-weight: 600; transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: #ccc; }
+  .copy-btn.copied { background: var(--green); border-color: var(--green); color: #fff; }
+
+  /* ─── ASSEMBLED TAB ─── */
+  .assembled-box {
+    margin-top: 8px; padding: 16px 18px; background: var(--bg-input);
+    border: 1px solid var(--border-input); border-radius: 10px;
+    white-space: pre-wrap; font-size: 12.5px; font-family: var(--font-mono);
+    color: #bbb; line-height: 1.6; max-height: 400px; overflow-y: auto;
+  }
+  .empty-state { padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px; }
+  .pro-tips {
+    margin-top: 24px; padding: 16px 18px; background: var(--bg-tip);
+    border: 1px solid #1a1a3a; border-radius: 10px;
+  }
+  .pro-tips .tips-label { margin-bottom: 10px; }
+  .pro-tips .tips-content { font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+
+  .btn-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .clear-btn {
+    padding: 8px 16px; background: #1a0a0a; border: 1px solid #4a2a2a;
+    border-radius: 8px; color: #cc6666; font-size: 12px; cursor: pointer;
+    font-family: var(--font-body); font-weight: 600; transition: all 0.2s;
+  }
+  .clear-btn:hover { border-color: #cc6666; }
+
+  /* SVG score ring */
+  .score-ring { flex-shrink: 0; }
+
+  .hidden { display: none !important; }
+
+  /* ─── CHANGELOG MODAL ─── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--bg-card); border: 1px solid var(--border-accent);
+    border-radius: 14px; padding: 28px; max-width: 600px; width: 100%;
+    max-height: 80vh; overflow-y: auto; position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px; width: 32px; height: 32px;
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    color: #888; cursor: pointer; font-size: 18px; line-height: 1;
+  }
+  .modal-close:hover { color: #fff; border-color: var(--accent); }
+  .modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .modal-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+  .changelog-entry {
+    padding: 14px 0; border-top: 1px solid var(--border);
+  }
+  .changelog-entry:first-of-type { border-top: none; }
+  .changelog-version {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px;
+  }
+  .changelog-v {
+    font-size: 14px; font-weight: 700; color: var(--accent);
+    font-family: var(--font-mono);
+  }
+  .changelog-date { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+  .changelog-list { font-size: 13px; color: #aaa; line-height: 1.7; padding-left: 4px; }
+  .changelog-list div { padding: 2px 0; }
+  .changelog-tag {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    padding: 1px 6px; border-radius: 3px; letter-spacing: 0.05em;
+    margin-right: 6px; vertical-align: middle;
+  }
+  .tag-add { background: #064e3b; color: #6ee7b7; }
+  .tag-fix { background: #4a1a1a; color: #fca5a5; }
+  .tag-mod { background: #3a3a1a; color: #fde047; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<div class="header">
+  <div class="header-inner">
+    <div class="badge-row">
+      <span class="badge">CLAUDE PROMPT ENGINEERING</span>
+      <span class="badge version-badge" id="version-badge">v2.0.0 · Changelog →</span>
+      <span class="badge updated-badge" id="updated-badge">Updated 2026-05-03</span>
+    </div>
+    <h1>Prompt Architect</h1>
+    <p>Build high-performance prompts with structured guidance. Covers every capability — native features, connected tools, and advanced techniques.</p>
+  </div>
+</div>
+
+<!-- ═══════════ TABS ═══════════ -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="builder">🛠 Builder</button>
+  <button class="tab-btn" data-tab="tools">⚡ Capabilities &amp; Tools</button>
+  <button class="tab-btn" data-tab="templates">📋 Templates</button>
+  <button class="tab-btn" data-tab="assembled">🏁 Assembled Prompt</button>
+</div>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+
+  <!-- ─── BUILDER TAB ─── -->
+  <div class="tab-content active" id="tab-builder">
+    <div class="builder-grid">
+      <div class="sidebar" id="sidebar-nav"></div>
+      <div class="content-card" id="section-content"></div>
+    </div>
+    <div class="score-panel" id="score-panel"></div>
+  </div>
+
+  <!-- ─── TOOLS TAB ─── -->
+  <div class="tab-content" id="tab-tools">
+    <p class="tools-intro">Everything Claude can access — from native file creation to connected services. Knowing what's available lets you write prompts that leverage the full stack.</p>
+    <div id="tools-list"></div>
+  </div>
+
+  <!-- ─── TEMPLATES TAB ─── -->
+  <div class="tab-content" id="tab-templates">
+    <p class="tools-intro">Copy a template, fill in the blanks, and paste it into Claude. Each one is structured to hit all the high-impact prompt sections.</p>
+    <div id="templates-list"></div>
+  </div>
+
+  <!-- ─── ASSEMBLED TAB ─── -->
+  <div class="tab-content" id="tab-assembled">
+    <p class="tools-intro">Your assembled prompt from all Builder sections. Copy and paste this directly into a new conversation with Claude.</p>
+    <div class="btn-row">
+      <button class="copy-btn" id="copy-assembled-btn">Copy Full Prompt</button>
+      <button class="clear-btn" id="clear-all-btn">Clear All</button>
+    </div>
+    <div id="assembled-output"></div>
+    <div class="pro-tips">
+      <div class="tips-label">Pro Tips for Maximum Impact</div>
+      <div class="tips-content">
+        → Upload relevant files alongside the prompt — Claude reads PDFs, images, spreadsheets, and code.<br>
+        → For documents, explicitly say "Create a .docx file" or "Make a presentation" to get downloadable files.<br>
+        → Use "Think step by step" for complex reasoning. Use "Be concise" for quick answers.<br>
+        → Say "Search the web for..." when you need current data.<br>
+        → Ask Claude to "remember" key facts for use in future conversations.<br>
+        → Trigger specific skills: "Use the [skill name] skill" if you have skills uploaded.<br>
+        → For long agentic tasks, ask Claude to "use extended thinking" before answering.<br>
+        → Iterate: "Good start, now make it more [specific quality]" is how experts use Claude.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════ CHANGELOG MODAL ═══════════ -->
+<div class="modal-overlay" id="changelog-modal">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">×</button>
+    <h2>Changelog</h2>
+    <div class="modal-subtitle">Version history of Prompt Architect</div>
+    <div id="changelog-content"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// VERSION & CHANGELOG
+// ═══════════════════════════════════════════════════════════════
+const VERSION = "2.0.0";
+const LAST_UPDATED = "2026-05-03";
+
+const CHANGELOG = [
+  {
+    version: "2.0.0",
+    date: "2026-05-03",
+    entries: [
+      { tag: "add", text: "New connected tools: HubSpot, QuickBooks, BigQuery, PayPal, Uber, Microsoft Learn" },
+      { tag: "add", text: "Extended thinking (reasoning blocks) added to Power Techniques" },
+      { tag: "add", text: "Skills system documented — uploadable skill packs that auto-trigger" },
+      { tag: "add", text: "Visual widgets, maps & places, weather, recipes, message composer" },
+      { tag: "add", text: "Anthropic product surfaces: Claude Code, Claude in Chrome, Claude in Excel, Cowork" },
+      { tag: "add", text: "Subagent delegation pattern in Power Techniques" },
+      { tag: "add", text: "Skill triggering technique with explicit invocation pattern" },
+      { tag: "add", text: "Version badge and changelog modal" },
+      { tag: "mod", text: "Reorganized tool categories: Anthropic Products, Native, Search, Connected, Specialized, Power" },
+      { tag: "fix", text: "Removed Slack (not in current standard connector set)" },
+      { tag: "mod", text: "NEW badges on tools added since previous version" }
+    ]
+  },
+  {
+    version: "1.0.0",
+    date: "2026-05-03",
+    entries: [
+      { tag: "add", text: "Initial release: 6-section structured prompt builder" },
+      { tag: "add", text: "Live scoring system (0-100) with weighted sections" },
+      { tag: "add", text: "Tools & capabilities reference catalog" },
+      { tag: "add", text: "5 ready-to-copy prompt templates" },
+      { tag: "add", text: "Assembled prompt output with one-click copy" }
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════
+// SECTIONS DATA (Builder)
+// ═══════════════════════════════════════════════════════════════
+const SECTIONS = [
+  {
+    id: "role", icon: "🎭", title: "Role & Persona", subtitle: "Who should Claude be?",
+    description: "Define Claude's expertise, tone, and perspective. This anchors all downstream behavior.",
+    tips: [
+      "Assign a specific expert role (e.g., 'You are a senior motorsport electronics engineer')",
+      "Specify communication style: technical, casual, academic, executive-level",
+      "Define the audience Claude is writing for (not just who it's talking to)",
+      "Use 'You are...' framing — it's more effective than 'Act as...'"
+    ],
+    placeholder: "e.g., You are a senior ECU calibration engineer with 15 years of motorsport experience. Communicate with technical precision but explain trade-offs clearly.",
+    advanced: [
+      "Claude can maintain a persona across a long conversation without reminders",
+      "Combine roles: 'You are both an engineer AND a technical writer' for dual-purpose output",
+      "Negative persona constraints work well: 'You are NOT a salesperson — never upsell or sugarcoat'",
+      "On Opus 4.7: persona stability has improved significantly across very long sessions"
+    ]
+  },
+  {
+    id: "context", icon: "📋", title: "Context & Background", subtitle: "What does Claude need to know?",
+    description: "Provide all relevant background information. Claude can't guess what's in your head.",
+    tips: [
+      "Include project name, current phase, and relevant history",
+      "Mention tools, platforms, or systems involved",
+      "State constraints: budget, timeline, technical limitations",
+      "Reference prior decisions or conversations that matter"
+    ],
+    placeholder: "e.g., We're building a rally car wiring harness for a Fiat 500 Abarth 1.4T making 350HP on E85. The ECU is an ECUmaster EMU Pro 16. We're using Deutsch DTM connectors and MIL-W-22759/16 wire.",
+    advanced: [
+      "Claude has memory across conversations — reference past discussions naturally",
+      "Upload files directly: PDFs, images, spreadsheets, code — Claude reads them all",
+      "Use XML tags to structure context blocks: <project_specs>...</project_specs>",
+      "For very long context, summarize first, then provide details in tagged sections",
+      "Claude can search past conversations — say 'find what we discussed about X'"
+    ]
+  },
+  {
+    id: "task", icon: "🎯", title: "Task & Objective", subtitle: "What exactly should Claude do?",
+    description: "Be explicit about the deliverable. Ambiguity is the #1 cause of underwhelming results.",
+    tips: [
+      "Start with a verb: 'Create...', 'Analyze...', 'Compare...', 'Debug...'",
+      "Specify the output type: document, code, table, decision matrix, email",
+      "Break complex tasks into numbered steps if needed",
+      "State what success looks like"
+    ],
+    placeholder: "e.g., Create a wiring pinout table for the EMU Pro 16 connector A, showing pin number, function, wire color, gauge, and destination connector. Flag any pins that need pull-up resistors.",
+    advanced: [
+      "Chain tasks: 'First analyze X, then based on that analysis, create Y'",
+      "Claude can create actual files: .docx, .pptx, .xlsx, .pdf — just ask",
+      "For iterative work, say 'Start with a draft, then I'll give feedback'",
+      "Use 'Think step by step' or 'Use extended thinking' for complex reasoning",
+      "Trigger relevant skills explicitly: 'Use the motorsport-wiring skill for this'"
+    ]
+  },
+  {
+    id: "format", icon: "📐", title: "Format & Structure", subtitle: "How should the output look?",
+    description: "Control the shape of Claude's response. Formatting instructions dramatically improve output quality.",
+    tips: [
+      "Specify length: 'Keep it under 200 words' or 'Be thorough, length is fine'",
+      "Request specific structures: bullet points, numbered lists, tables, headers",
+      "Ask for specific file types when applicable (.docx, .pptx, .xlsx)",
+      "Define sections you want included or excluded"
+    ],
+    placeholder: "e.g., Format as a markdown table with columns: Pin | Function | Wire Color | AWG | Destination | Notes. Add a summary section below the table with any critical wiring warnings.",
+    advanced: [
+      "XML tags in your prompt create structured output: '<answer>' tags, '<reasoning>' tags",
+      "Ask Claude to use Mermaid diagrams for flowcharts and architecture",
+      "Request React/HTML artifacts for interactive visualizations",
+      "Use 'Respond in JSON format' for programmatic consumption",
+      "Request inline visual widgets: 'Show this as a chart' or 'Render this as a diagram'"
+    ]
+  },
+  {
+    id: "examples", icon: "💡", title: "Examples & References", subtitle: "Show, don't just tell",
+    description: "Examples are the most powerful prompt engineering technique. Even one example dramatically improves output.",
+    tips: [
+      "Provide 1-3 examples of ideal output (few-shot prompting)",
+      "Show both good AND bad examples when quality matters",
+      "Use input/output pairs: 'Given X, I want Y'",
+      "Reference styles: 'Similar to how [specific source] explains things'"
+    ],
+    placeholder: "e.g., Here's the format I want for each entry:\n\nPin 1 | Main Relay Output | Red/White | 16 AWG | Relay Pin 87 | Fused at 30A\n\nDo NOT include: voltage specs, internal ECU circuit details",
+    advanced: [
+      "Negative examples are powerful: 'Do NOT do this: [bad example]'",
+      "Claude can match tone from example text you provide",
+      "For creative work, paste a style sample and say 'Match this voice'",
+      "Use <example> XML tags to clearly delineate examples from instructions",
+      "Reference past artifacts: 'Use the same format as the wiring guide we built'"
+    ]
+  },
+  {
+    id: "constraints", icon: "🚧", title: "Constraints & Guardrails", subtitle: "What should Claude avoid?",
+    description: "Boundaries prevent hallucination and keep output focused. Explicitly state what's off-limits.",
+    tips: [
+      "List topics or approaches to avoid",
+      "Set confidence thresholds: 'If unsure, say so rather than guessing'",
+      "Restrict sources: 'Only use info from the uploaded document'",
+      "Define terminology: 'When I say X, I mean Y'"
+    ],
+    placeholder: "e.g., Do not assume any pin assignments — only include what's confirmed in the EMU Pro documentation. If a pin function is ambiguous, flag it with '⚠️ VERIFY' and explain why.",
+    advanced: [
+      "Claude responds well to 'This is critical' or 'This is very important' for emphasis",
+      "Prefilling: Start Claude's response for it to guide the direction",
+      "Use system prompts (API) for persistent constraints across conversations",
+      "Ask Claude to self-check: 'After completing, review for errors and inconsistencies'",
+      "On Opus 4.7: Claude is better at acknowledging uncertainty when prompted to do so"
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════
+// TOOLS & CAPABILITIES (v2.0)
+// ═══════════════════════════════════════════════════════════════
+const TOOLS_AND_FEATURES = [
+  {
+    category: "Anthropic Products & Surfaces", icon: "🏛", isNew: true,
+    items: [
+      { name: "Claude.ai (Web/Mobile/Desktop)", desc: "Standard chat interface — what you're using now", trigger: "claude.ai", isNew: true },
+      { name: "Claude API", desc: "Programmatic access. Models: Opus 4.7, Opus 4.6, Sonnet 4.6, Haiku 4.5", trigger: "Use 'claude-opus-4-7' for the latest model", isNew: true },
+      { name: "Claude Code", desc: "CLI tool for agentic coding directly from your terminal", trigger: "Install via 'npm install -g @anthropic-ai/claude-code'", isNew: true },
+      { name: "Claude in Chrome (Beta)", desc: "Browser agent — Claude can navigate, click, fill forms", trigger: "Install the Chrome extension; Claude operates in the active tab", isNew: true },
+      { name: "Claude in Excel (Beta)", desc: "Spreadsheet agent for Excel workflows", trigger: "Available as Excel add-in; ask Claude to work with sheets", isNew: true },
+      { name: "Cowork (Beta)", desc: "Desktop tool for non-developers to automate file/task management", trigger: "Standalone desktop app for workflow automation", isNew: true }
+    ]
+  },
+  {
+    category: "Native Capabilities", icon: "⚡",
+    items: [
+      { name: "File Creation", desc: "Creates .docx, .pptx, .xlsx, .pdf, .md, .html, .jsx files", trigger: "Ask: 'Create a Word document...' or 'Make a spreadsheet...'" },
+      { name: "Code Execution", desc: "Runs Python, Node.js, bash in a sandboxed Linux environment", trigger: "Ask: 'Run this code...' or 'Calculate using Python...'" },
+      { name: "Image Analysis", desc: "Reads and interprets uploaded images, screenshots, diagrams", trigger: "Upload an image and ask about it" },
+      { name: "PDF Reading", desc: "Extracts and analyzes content from uploaded PDFs", trigger: "Upload a PDF and reference it in your prompt" },
+      { name: "Artifacts", desc: "Interactive React/HTML apps rendered inline in chat", trigger: "Ask: 'Build an interactive...' or 'Create a React component...'" },
+      { name: "Memory", desc: "Remembers facts about you across conversations", trigger: "Say: 'Remember that...' or 'Please remember...'" },
+      { name: "Persistent Storage", desc: "Artifacts can save/load data across sessions", trigger: "Ask for trackers, journals, or tools that persist data" },
+      { name: "Extended Thinking", desc: "Reasoning blocks before answering — better for complex problems", trigger: "Ask: 'Use extended thinking' or 'Think this through carefully'", isNew: true },
+      { name: "Skills System", desc: "Auto-triggering skill packs (yours include ADU, ECUmaster, RT brand, etc.)", trigger: "Skills auto-activate; or say 'Use the [skill-name] skill'", isNew: true },
+      { name: "Visual Widgets", desc: "Inline diagrams, charts, mockups, interactive elements", trigger: "Ask: 'Show this as a diagram' or 'Visualize this data'", isNew: true }
+    ]
+  },
+  {
+    category: "Search & Research", icon: "🔍",
+    items: [
+      { name: "Web Search", desc: "Real-time web search for current information", trigger: "Ask about current events, prices, news, or say 'search for...'" },
+      { name: "Deep Research", desc: "Extended multi-source research with comprehensive reports", trigger: "Enable in settings; ask complex research questions" },
+      { name: "Image Search", desc: "Finds relevant images from the web", trigger: "Ask about visual topics — places, products, animals, food" },
+      { name: "Past Chat Search", desc: "Searches your conversation history with Claude", trigger: "Reference past conversations: 'What did we discuss about...'" }
+    ]
+  },
+  {
+    category: "Connected Tools (MCP)", icon: "🔗",
+    items: [
+      { name: "Google Calendar", desc: "Create, search, update calendar events", trigger: "Ask: 'What's on my calendar...' or 'Schedule a meeting...'" },
+      { name: "Gmail", desc: "Search and read emails", trigger: "Ask: 'Find my emails about...' or 'Check my inbox for...'" },
+      { name: "Google Drive", desc: "Search and read files in Drive", trigger: "Ask: 'Find our Q3 presentation...' or 'Search Drive for...'" },
+      { name: "Microsoft 365", desc: "Outlook, Teams, SharePoint integration", trigger: "Ask about Outlook emails, Teams messages, SharePoint docs" },
+      { name: "Canva", desc: "Create designs, presentations, social posts", trigger: "Ask: 'Design a poster...' or 'Create an Instagram post...'" },
+      { name: "Figma", desc: "Access and reference Figma designs", trigger: "Reference Figma files or ask about designs" },
+      { name: "HubSpot", desc: "CRM data, contacts, deals, marketing workflows", trigger: "Ask: 'Find this contact in HubSpot' or 'Update deal status'", isNew: true },
+      { name: "Intuit QuickBooks", desc: "P&L analysis, cash flow, transactions, benchmarking", trigger: "Ask: 'Generate a P&L report' or 'Analyze my expenses'", isNew: true },
+      { name: "Google Cloud BigQuery", desc: "Query large-scale data warehouses with SQL", trigger: "Ask: 'Query the BigQuery dataset for...'", isNew: true },
+      { name: "PayPal", desc: "Payment data, transactions, invoicing", trigger: "Ask about PayPal transactions or invoice management", isNew: true },
+      { name: "Microsoft Learn", desc: "Search official Microsoft/Azure documentation", trigger: "Ask: 'Find Microsoft docs about...'", isNew: true }
+    ]
+  },
+  {
+    category: "Specialized Inline Tools", icon: "🧰", isNew: true,
+    items: [
+      { name: "Maps & Places", desc: "Search places, build itineraries with location pins", trigger: "Ask: 'Plan a trip to...' or 'Find restaurants near...'", isNew: true },
+      { name: "Weather", desc: "Real-time weather for any location", trigger: "Ask: 'What's the weather in...' or 'Will it rain tomorrow?'", isNew: true },
+      { name: "Recipe Display", desc: "Interactive recipes with adjustable serving sizes", trigger: "Ask: 'Give me a recipe for...' with cooking intent", isNew: true },
+      { name: "Message Composer", desc: "Drafts emails/Slack/texts with multiple strategic variants", trigger: "Ask: 'Draft an email to...' or 'Help me write a message'", isNew: true },
+      { name: "Uber Rides", desc: "Get ride estimates between two locations", trigger: "Ask: 'How much would an Uber from A to B cost?'", isNew: true },
+      { name: "Quick Polls", desc: "Tappable button-based questions for fast input", trigger: "Claude offers options when narrowing your preferences", isNew: true }
+    ]
+  },
+  {
+    category: "Power Techniques", icon: "🧠",
+    items: [
+      { name: "XML Structuring", desc: "Use <tags> to organize prompt sections for Claude to parse", trigger: "Wrap context in tags: <requirements>...</requirements>" },
+      { name: "Chain of Thought", desc: "Force step-by-step reasoning for complex problems", trigger: "Add: 'Think through this step by step before answering'" },
+      { name: "Extended Thinking", desc: "Activate deep reasoning blocks for hard problems", trigger: "Add: 'Use extended thinking' or 'think hard about this'", isNew: true },
+      { name: "Few-Shot Learning", desc: "Provide examples to define the pattern you want", trigger: "Include 2-3 input→output examples in your prompt" },
+      { name: "Negative Prompting", desc: "Specify what NOT to do for sharper results", trigger: "Add: 'Do NOT include...' or 'Avoid...'" },
+      { name: "Self-Verification", desc: "Ask Claude to check its own work", trigger: "Add: 'After completing, verify your answer for accuracy'" },
+      { name: "Multi-Pass Refinement", desc: "Have Claude draft, then critique, then refine", trigger: "Ask: 'Create a draft, then critique it, then write the final version'" },
+      { name: "Structured Output", desc: "Request JSON, CSV, or specific data formats", trigger: "Add: 'Respond in JSON format with keys: ...'" },
+      { name: "Prefill Steering", desc: "Start Claude's response to guide direction (API only)", trigger: "In API: set assistant message prefix to steer the response" },
+      { name: "Skill Triggering", desc: "Explicitly invoke uploaded skills for guaranteed activation", trigger: "Say: 'Use the [skill-name] skill' to force usage", isNew: true },
+      { name: "Subagent Delegation", desc: "Have Claude spawn subtasks (Claude Code feature)", trigger: "In Claude Code: 'Delegate the testing portion to a subagent'", isNew: true },
+      { name: "Tool Search Hint", desc: "Suggest specific tools rather than letting Claude pick", trigger: "Say: 'Search the web for X' or 'Use Gmail to find Y'", isNew: true }
+    ]
+  }
+];
+
+const PROMPT_TEMPLATES = [
+  {
+    name: "Technical Problem", icon: "🔧",
+    template: `**Role:** You are a [domain] engineer with expertise in [specific area].
+
+**Context:** [Describe the system, setup, and current state]
+
+**Problem:** [What's going wrong or what needs to be solved]
+
+**Constraints:**
+- [Technical limitation 1]
+- [Technical limitation 2]
+
+**Task:** [Specific deliverable — diagnosis, solution, comparison, etc.]
+
+**Format:** [How you want the answer structured]
+
+**Use extended thinking** if the problem requires multi-step reasoning.`
+  },
+  {
+    name: "Document Creation", icon: "📄",
+    template: `**Task:** Create a [document type] about [topic].
+
+**Audience:** [Who will read this]
+**Tone:** [Professional/casual/technical/executive]
+**Length:** [Approximate length or page count]
+
+**Must include:**
+- [Required section 1]
+- [Required section 2]
+
+**Must NOT include:**
+- [What to exclude]
+
+**Reference style:** [Example or description of desired style]
+**Output format:** [.docx / .md / .pdf / etc.]`
+  },
+  {
+    name: "Code & Development", icon: "💻",
+    template: `**Task:** [Create/debug/refactor] [what] in [language/framework].
+
+**Context:**
+- Stack: [technologies in use]
+- Current code: [paste or describe]
+- The issue: [what's broken or what's needed]
+
+**Requirements:**
+- [Functional requirement 1]
+- [Functional requirement 2]
+
+**Constraints:**
+- [No external dependencies / must be compatible with X / etc.]
+
+**Output:** [Working code file / explanation with code / both]
+**Verification:** After completing, walk through your code and explain any edge cases you handled.`
+  },
+  {
+    name: "Analysis & Decision", icon: "⚖️",
+    template: `**Context:** [Situation requiring a decision]
+
+**Options under consideration:**
+1. [Option A]
+2. [Option B]
+3. [Option C]
+
+**Evaluation criteria:** [Cost, performance, reliability, etc.]
+
+**Constraints:** [Budget, timeline, compatibility requirements]
+
+**Task:** Compare these options with a decision matrix. For each, provide pros, cons, and a confidence-rated recommendation.
+
+**Format:** Table + summary recommendation with reasoning.
+**Use extended thinking** to weigh trade-offs carefully.`
+  },
+  {
+    name: "Communication Draft", icon: "✉️",
+    template: `**Task:** Draft a [email/message/proposal] to [recipient].
+
+**Context:** [Situation and relationship with recipient]
+**Goal:** [What you want to achieve with this message]
+**Tone:** [Professional but firm / friendly / diplomatic / urgent]
+
+**Key points to cover:**
+- [Point 1]
+- [Point 2]
+
+**Avoid:** [Topics or tones to steer away from]
+**Length:** [Brief / detailed]
+
+**Tip:** Ask Claude to provide 2-3 strategic variants (e.g., "diplomatic" vs "direct") so you can choose.`
+  },
+  {
+    name: "Skill-Based Task", icon: "🎓",
+    template: `**Use the [skill-name] skill for this task.**
+
+**Context:** [Project or situation requiring the skill's domain expertise]
+
+**Specific request:** [What you want produced]
+
+**Inputs:**
+- [Data, file, spec the skill needs to work with]
+
+**Output requirements:**
+- [Format, level of detail, sections]
+
+**Constraints:** [Anything off-limits or required]`
+  }
+];
+
+const WEIGHTS = { role: 15, context: 25, task: 25, format: 15, examples: 10, constraints: 10 };
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let activeTab = "builder";
+let activeSection = "role";
+let sectionData = {};
+let advancedOpen = {};
+SECTIONS.forEach(s => { sectionData[s.id] = ""; advancedOpen[s.id] = false; });
+
+// ═══════════════════════════════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════════════════════════════
+function scorePrompt() {
+  let total = 0, max = 0;
+  const breakdown = {};
+  SECTIONS.forEach(s => {
+    const w = WEIGHTS[s.id] || 10;
+    max += w;
+    const len = (sectionData[s.id] || "").trim().length;
+    let score = 0;
+    if (len > 200) score = w;
+    else if (len > 100) score = w * 0.8;
+    else if (len > 40) score = w * 0.5;
+    else if (len > 10) score = w * 0.25;
+    total += score;
+    breakdown[s.id] = { score, max: w, filled: len > 0 };
+  });
+  return { total: Math.round((total / max) * 100), breakdown };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function escHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderScoreRing(score) {
+  const r = 54, c = 2 * Math.PI * r;
+  const offset = c - (score / 100) * c;
+  const color = score >= 80 ? "#22c55e" : score >= 50 ? "#f59e0b" : "#ef4444";
+  return `<svg class="score-ring" width="130" height="130" viewBox="0 0 130 130">
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="#1a1a2e" stroke-width="10"/>
+    <circle cx="65" cy="65" r="${r}" fill="none" stroke="${color}" stroke-width="10"
+      stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"
+      transform="rotate(-90 65 65)" style="transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1),stroke .4s"/>
+    <text x="65" y="60" text-anchor="middle" fill="#f0f0f0" font-size="32" font-weight="800" font-family="'JetBrains Mono',monospace">${score}</text>
+    <text x="65" y="80" text-anchor="middle" fill="#888" font-size="11" font-family="'JetBrains Mono',monospace">/ 100</text>
+  </svg>`;
+}
+
+function getScoreLabel(score) {
+  if (score >= 85) return `<span style="color:#22c55e;font-weight:700">🏁 Race-Ready Prompt</span>`;
+  if (score >= 65) return `<span style="color:#f59e0b;font-weight:700">🔧 Needs Tuning</span>`;
+  if (score >= 35) return `<span style="color:#ef4444;font-weight:700">⚠️ Missing Key Info</span>`;
+  return `<span style="color:#ef4444;font-weight:700">🚫 Too Vague — Add Detail</span>`;
+}
+
+function getScoreAdvice(score) {
+  if (score < 35) return "Start by filling in the Task — that's the most critical section. Then add Context to ground Claude's response.";
+  if (score < 65) return "Good foundation. Add examples and constraints to push quality higher. Consider format specifications.";
+  if (score < 85) return "Strong prompt. For the final edge, add negative examples and self-verification instructions.";
+  return "Comprehensive prompt. Claude has everything it needs to deliver high-quality output.";
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+function renderSidebar() {
+  const { breakdown } = scorePrompt();
+  const nav = document.getElementById("sidebar-nav");
+  nav.innerHTML = SECTIONS.map(s => {
+    const bd = breakdown[s.id];
+    const pct = bd.max > 0 ? (bd.score / bd.max) * 100 : 0;
+    const barColor = pct >= 80 ? "#22c55e" : pct >= 40 ? "#f59e0b" : bd.filled ? "#ef4444" : "#333";
+    return `<button class="nav-btn ${activeSection === s.id ? "active" : ""}" data-section="${s.id}">
+      <span class="nav-icon">${s.icon}</span>
+      <span class="nav-label">${s.title}</span>
+      <span class="mini-bar-wrap"><span class="mini-bar-fill" style="width:${pct}%;background:${barColor}"></span></span>
+    </button>`;
+  }).join("");
+
+  nav.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      activeSection = btn.dataset.section;
+      renderBuilder();
+    });
+  });
+}
+
+function renderSectionContent() {
+  const s = SECTIONS.find(x => x.id === activeSection);
+  const el = document.getElementById("section-content");
+  el.innerHTML = `
+    <div class="section-header">
+      <h2><span>${s.icon}</span> ${s.title}</h2>
+      <span class="section-subtitle">${s.subtitle}</span>
+    </div>
+    <p class="section-desc">${s.description}</p>
+    <textarea class="prompt-input" id="input-${s.id}" placeholder="${escHtml(s.placeholder)}">${escHtml(sectionData[s.id] || "")}</textarea>
+    <div class="tips-box">
+      <div class="tips-label">Best Practices</div>
+      ${s.tips.map(t => `<div class="tip-item">→ ${escHtml(t)}</div>`).join("")}
+    </div>
+    <button class="advanced-toggle" id="adv-toggle-${s.id}">${advancedOpen[s.id] ? "▾" : "▸"} Advanced / Hidden Features</button>
+    <div class="advanced-items ${advancedOpen[s.id] ? "" : "hidden"}" id="adv-items-${s.id}">
+      ${s.advanced.map(a => `<div class="advanced-item">${escHtml(a)}</div>`).join("")}
+    </div>`;
+
+  const textarea = document.getElementById(`input-${s.id}`);
+  textarea.addEventListener("input", () => {
+    sectionData[s.id] = textarea.value;
+    renderSidebar();
+    renderScorePanel();
+  });
+
+  document.getElementById(`adv-toggle-${s.id}`).addEventListener("click", () => {
+    advancedOpen[s.id] = !advancedOpen[s.id];
+    const items = document.getElementById(`adv-items-${s.id}`);
+    items.classList.toggle("hidden", !advancedOpen[s.id]);
+    document.getElementById(`adv-toggle-${s.id}`).textContent =
+      (advancedOpen[s.id] ? "▾" : "▸") + " Advanced / Hidden Features";
+  });
+}
+
+function renderScorePanel() {
+  const { total, breakdown } = scorePrompt();
+  const panel = document.getElementById("score-panel");
+  panel.innerHTML = `
+    ${renderScoreRing(total)}
+    <div style="flex:1">
+      <div class="score-label">${getScoreLabel(total)}</div>
+      <div class="score-advice">${getScoreAdvice(total)}</div>
+      <div class="score-breakdown">
+        ${SECTIONS.map(s => {
+          const bd = breakdown[s.id];
+          const pct = bd ? Math.round((bd.score / bd.max) * 100) : 0;
+          return `<span style="color:${bd?.filled ? "#aaa" : "#555"}">${s.icon} ${s.title.split(" ")[0]}: ${pct}%</span>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+
+function renderBuilder() {
+  renderSidebar();
+  renderSectionContent();
+  renderScorePanel();
+}
+
+function renderTools() {
+  const el = document.getElementById("tools-list");
+  el.innerHTML = TOOLS_AND_FEATURES.map((cat, ci) => {
+    const newCount = cat.items.filter(i => i.isNew).length;
+    return `
+    <div class="tool-category">
+      <div class="tool-cat-header" data-cat="${ci}">
+        <span>${cat.icon}</span> ${cat.category}
+        ${cat.isNew ? '<span class="changelog-tag tag-add">NEW</span>' : ''}
+        <span class="tool-cat-count">${cat.items.length} tools${newCount > 0 ? ` · ${newCount} new` : ''} ▾</span>
+      </div>
+      <div class="tool-grid" id="tool-grid-${ci}">
+        ${cat.items.map(t => `
+          <div class="tool-card ${t.isNew ? 'new' : ''}">
+            <div class="tool-name">${escHtml(t.name)}</div>
+            <div class="tool-desc">${escHtml(t.desc)}</div>
+            <div class="tool-trigger">↳ ${escHtml(t.trigger)}</div>
+          </div>`).join("")}
+      </div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".tool-cat-header").forEach(header => {
+    header.addEventListener("click", () => {
+      const grid = document.getElementById(`tool-grid-${header.dataset.cat}`);
+      grid.classList.toggle("hidden");
+      const count = header.querySelector(".tool-cat-count");
+      count.textContent = count.textContent.includes("▾")
+        ? count.textContent.replace("▾", "▸")
+        : count.textContent.replace("▸", "▾");
+    });
+  });
+}
+
+function renderTemplates() {
+  const el = document.getElementById("templates-list");
+  el.innerHTML = PROMPT_TEMPLATES.map((t, i) => `
+    <div class="template-card">
+      <div class="template-name"><span>${t.icon}</span> ${t.name}</div>
+      <pre class="template-pre">${escHtml(t.template)}</pre>
+      <button class="copy-btn" data-idx="${i}">Copy Template</button>
+    </div>`).join("");
+
+  el.querySelectorAll(".copy-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = PROMPT_TEMPLATES[parseInt(btn.dataset.idx)];
+      copyToClipboard(t.template, btn);
+    });
+  });
+}
+
+function assemblePrompt() {
+  const parts = [];
+  SECTIONS.forEach(s => {
+    const text = (sectionData[s.id] || "").trim();
+    if (text) parts.push(`## ${s.title}\n${text}`);
+  });
+  return parts.join("\n\n");
+}
+
+function renderAssembled() {
+  const el = document.getElementById("assembled-output");
+  const prompt = assemblePrompt();
+  if (prompt.trim()) {
+    el.innerHTML = `<div class="assembled-box">${escHtml(prompt)}</div>`;
+  } else {
+    el.innerHTML = `<div class="empty-state">No content yet. Go to the Builder tab and fill in sections to see your prompt here.</div>`;
+  }
+}
+
+function renderChangelog() {
+  const el = document.getElementById("changelog-content");
+  el.innerHTML = CHANGELOG.map(entry => `
+    <div class="changelog-entry">
+      <div class="changelog-version">
+        <span class="changelog-v">v${entry.version}</span>
+        <span class="changelog-date">${entry.date}</span>
+      </div>
+      <div class="changelog-list">
+        ${entry.entries.map(e => {
+          const tagClass = e.tag === "add" ? "tag-add" : e.tag === "fix" ? "tag-fix" : "tag-mod";
+          const tagLabel = e.tag === "add" ? "ADD" : e.tag === "fix" ? "FIX" : "MOD";
+          return `<div><span class="changelog-tag ${tagClass}">${tagLabel}</span>${escHtml(e.text)}</div>`;
+        }).join("")}
+      </div>
+    </div>
+  `).join("");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLIPBOARD
+// ═══════════════════════════════════════════════════════════════
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = "✓ Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove("copied"); }, 2000);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.toggle("active", c.id === `tab-${tab}`));
+  if (tab === "builder") renderBuilder();
+  if (tab === "assembled") renderAssembled();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+document.getElementById("copy-assembled-btn").addEventListener("click", function() {
+  copyToClipboard(assemblePrompt(), this);
+});
+
+document.getElementById("clear-all-btn").addEventListener("click", () => {
+  SECTIONS.forEach(s => { sectionData[s.id] = ""; });
+  renderBuilder();
+  renderAssembled();
+});
+
+// Changelog modal
+document.getElementById("version-badge").addEventListener("click", () => {
+  document.getElementById("changelog-modal").classList.add("active");
+});
+document.getElementById("modal-close").addEventListener("click", () => {
+  document.getElementById("changelog-modal").classList.remove("active");
+});
+document.getElementById("changelog-modal").addEventListener("click", (e) => {
+  if (e.target.id === "changelog-modal") {
+    document.getElementById("changelog-modal").classList.remove("active");
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+renderBuilder();
+renderTools();
+renderTemplates();
+renderChangelog();
+</script>
+</body>
+</html>
