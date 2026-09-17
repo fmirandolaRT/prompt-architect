@@ -37,4 +37,4 @@ MIT — use, modify, share freely.
 
 ---
 
-_Built collaboratively with Claude (Opus 4.7)._
+_Built collaboratively with Claude._
